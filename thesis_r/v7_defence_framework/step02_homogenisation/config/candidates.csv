@@ -1,0 +1,23 @@
+station,variable,yyyymm,type,note
+LONDON,tx,195411,1,
+LONDON,tx,198911,1,
+LONDON,tn,195202,1,
+LONDON,tn,196106,0,metadata: change of climatological day for minimum temperature (1 July 1961)
+LONDON,tn,196503,1,
+FERGUS,tx,196304,1,
+FERGUS,tx,196512,1,
+FERGUS,tn,197307,1,
+FERGUS,tn,198502,1,
+FERGUS,tn,199206,1,
+FERGUS,tn,199404,1,
+FERGUS,tn,201812,1,
+HARROW,tx,195702,0,retained without pruning: detected against both neighbours (about -1 C)
+HARROW,tx,196007,1,
+HARROW,tx,196903,1,
+HARROW,tx,200206,1,
+HARROW,tx,201004,1,
+HARROW,tn,196503,1,
+HARROW,tn,197811,1,
+HARROW,tn,200505,1,
+HARROW,tn,200712,1,
+HARROW,tn,201004,1,

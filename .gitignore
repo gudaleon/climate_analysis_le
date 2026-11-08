@@ -1,0 +1,12 @@
+# Data, model output and run artefacts are not distributed with this repository
+data/
+out/
+out_*/
+__pycache__/
+*.pyc
+*.pkl
+*.nc
+*.RData
+*.rds
+*.tgz
+.venv/
