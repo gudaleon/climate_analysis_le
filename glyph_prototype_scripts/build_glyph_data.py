@@ -1,6 +1,9 @@
 """Compute per-cell channel data for the glyph prototype from the verified recompute layer.
 Sources: executor_runs/wu_claude/out/facts_AUTHORS_v4.pkl (pc, proj) and out/tables_613.json (printed arrows).
-Annual tables in out/idx/ are used only for the independent hand-checks at the end."""
+Annual tables in out/idx/ are used only for the independent hand-checks at the end.
+Usage: build_glyph_data.py [far|near|all]  (default all). Contrasts: far = Far Future (2063-2100)
+vs Historical, printed ensemble column 21 of the 22-column arrow tables; near = Near Future
+(2024-2062) vs Historical, printed ensemble column 10."""
 import pickle, json, pathlib, sys
 import numpy as np, pandas as pd
 sys.path.insert(0, str(pathlib.Path.home()/"workspace/jeremy_wu_redteam/executor_runs/wu_claude/code"))
@@ -11,6 +14,11 @@ BASE = pathlib.Path.home()/"workspace/jeremy_wu_redteam/executor_runs/wu_claude/
 OUT  = pathlib.Path.home()/"workspace/jeremy_wu_redteam/figures_glyph_prototype"
 STATIONS = ['London','Fergus','Harrow']
 CAP = 5.0
+CONTRASTS = {
+    'far':  dict(comp='F', col=21, suffix='far_future'),
+    'near': dict(comp='N', col=10, suffix='near_future'),
+}
+HAND_CELLS = [('London','TXm'), ('Fergus','CWD'), ('Harrow','R95p')]
 
 F = pickle.load(open(BASE/"facts_AUTHORS_v4.pkl",'rb'))
 pc, proj = F['pc'], F['proj']
@@ -20,54 +28,68 @@ tabmap = {'London': tabs['T5_London'], 'Fergus': tabs['C1_Fergus'], 'Harrow': ta
 def sgn(x):
     return '–' if x == 0 else ('↑' if x > 0 else '↓')
 
-rows = []
-for st in STATIONS:
-    pf = proj[(proj.station==st)&(proj.comp=='F')].set_index('index')
-    ef = pc[(pc.station==st)&(pc.source=='ENS')&(pc.comp=='F')].set_index('index')
-    for ix in INDICES:
-        d_all = pc[(pc.station==st)&(pc['index']==ix)&(pc.source.isin(MODELS))&(pc.comp=='F')].delta.values.astype(float)
-        d = d_all[~np.isnan(d_all)]
-        med = float(np.median(d))                      # median of the models' changes (= proj.ens_median)
-        assert abs(med - float(pf.loc[ix,'ens_median'])) < 1e-9, (st, ix, med, pf.loc[ix,'ens_median'])
-        q1, q3 = np.quantile(d, [0.25, 0.75]); iqr = float(q3-q1)
-        ratio = abs(med)/iqr if iqr > 0 else (0.0 if med == 0 else float('inf'))
-        if med != 0:
-            agree = int((np.sign(d) == np.sign(med)).sum())
-        else:
-            agree = int((d == 0).sum())                # flat cells: models with exactly no change
-        p = float(ef.loc[ix,'p']); pooled = float(ef.loc[ix,'delta'])
-        printed = tabmap[st][ix][21] if ix in tabmap[st] else None   # ENS, Far Future column of the 22-column printed arrow tables
-        rows.append(dict(station=st, index=ix, family=('Precipitation' if ix in PREC else 'Temperature'),
-            n_models_defined=int(len(d)), median_change=med, q1_change=float(q1), q3_change=float(q3), iqr_change=iqr,
-            relative_magnitude=(ratio if np.isfinite(ratio) else np.nan), relative_magnitude_capped=float(min(ratio, CAP)) if np.isfinite(ratio) else CAP,
-            ratio_at_cap=bool(ratio > CAP), agreement=agree, direction=sgn(med),
-            pooled_ensemble_change=pooled, pooled_arrow=sgn(pooled), wilcoxon_p=p, significant=bool(p < 0.05),
-            printed_arrow=printed, direction_agrees_with_printed=(None if printed is None else sgn(med) == printed)))
-df = pd.DataFrame(rows)
-df.to_csv(OUT/"glyph_channel_data_far_future.csv", index=False)
-print(f"cells {len(df)}; capped {int(df.ratio_at_cap.sum())}; sig {int(df.significant.sum())}")
-dis = df[df.direction_agrees_with_printed == False]
-print(f"direction vs printed: agree {int((df.direction_agrees_with_printed==True).sum())}, disagree {len(dis)}, missing printed {int(df.printed_arrow.isna().sum())}")
-print(dis[['station','index','median_change','pooled_ensemble_change','direction','printed_arrow']].to_string())
+def build(key):
+    cfg = CONTRASTS[key]; comp, col = cfg['comp'], cfg['col']
+    rows = []
+    for st in STATIONS:
+        pf = proj[(proj.station==st)&(proj.comp==comp)].set_index('index')
+        ef = pc[(pc.station==st)&(pc.source=='ENS')&(pc.comp==comp)].set_index('index')
+        for ix in INDICES:
+            d_all = pc[(pc.station==st)&(pc['index']==ix)&(pc.source.isin(MODELS))&(pc.comp==comp)].delta.values.astype(float)
+            d = d_all[~np.isnan(d_all)]
+            med = float(np.median(d))                      # median of the models' changes (= proj.ens_median)
+            assert abs(med - float(pf.loc[ix,'ens_median'])) < 1e-9, (st, ix, med, pf.loc[ix,'ens_median'])
+            q1, q3 = np.quantile(d, [0.25, 0.75]); iqr = float(q3-q1)
+            ratio = abs(med)/iqr if iqr > 0 else (0.0 if med == 0 else float('inf'))
+            if med != 0:
+                agree = int((np.sign(d) == np.sign(med)).sum())
+            else:
+                agree = int((d == 0).sum())                # flat cells: models with exactly no change
+            p = float(ef.loc[ix,'p']); pooled = float(ef.loc[ix,'delta'])
+            printed = tabmap[st][ix][col] if ix in tabmap[st] else None   # ENS column of the 22-column printed arrow tables
+            rows.append(dict(station=st, index=ix, family=('Precipitation' if ix in PREC else 'Temperature'),
+                n_models_defined=int(len(d)), median_change=med, q1_change=float(q1), q3_change=float(q3), iqr_change=iqr,
+                relative_magnitude=(ratio if np.isfinite(ratio) else np.nan), relative_magnitude_capped=float(min(ratio, CAP)) if np.isfinite(ratio) else CAP,
+                ratio_at_cap=bool(ratio > CAP), agreement=agree, direction=sgn(med),
+                pooled_ensemble_change=pooled, pooled_arrow=sgn(pooled), wilcoxon_p=p, significant=bool(p < 0.05),
+                printed_arrow=printed, direction_agrees_with_printed=(None if printed is None else sgn(med) == printed)))
+    df = pd.DataFrame(rows)
+    df.to_csv(OUT/f"glyph_channel_data_{cfg['suffix']}.csv", index=False)
+    print(f"[{key}] cells {len(df)}; capped {int(df.ratio_at_cap.sum())}; sig {int(df.significant.sum())}; "
+          f"agreement dist {df.agreement.value_counts().sort_index().to_dict()}; "
+          f"flat cells {int((df.median_change==0).sum())}; min agreement {int(df.agreement.min())}")
+    dis = df[df.direction_agrees_with_printed == False]
+    print(f"[{key}] direction vs printed: agree {int((df.direction_agrees_with_printed==True).sum())}, disagree {len(dis)}, missing printed {int(df.printed_arrow.isna().sum())}")
+    if len(dis):
+        print(dis[['station','index','median_change','pooled_ensemble_change','direction','printed_arrow']].to_string())
+    return df
 
-# ---- Independent hand-checks straight from the annual index tables (out/idx) ----
 def load(st, m):
     return pd.read_csv(BASE/f"idx/{st}_{m}_annual.csv", index_col=0).round(6)
-print("\nHAND CHECKS (recomputed from out/idx annual tables):")
-for st, ix in [('London','TXm'), ('Fergus','CWD'), ('Harrow','R95p')]:
-    deltas, hall, fall = [], [], []
-    for m in MODELS:
-        dfm = load(st, m)
-        h = per(dfm,'H',ix); f = per(dfm,'F',ix)
-        deltas.append(float(np.median(f)-np.median(h))); hall.append(h); fall.append(f)
-    deltas = np.array(deltas); med = float(np.median(deltas))
-    q1,q3 = np.quantile(deltas,[.25,.75]); iqr = float(q3-q1)
-    agree = int((np.sign(deltas)==np.sign(med)).sum()) if med!=0 else int((deltas==0).sum())
-    p = wilcox(np.concatenate(hall), np.concatenate(fall))
-    saved = df[(df.station==st)&(df['index']==ix)].iloc[0]
-    ok = (abs(med-saved.median_change)<1e-9 and abs(iqr-saved.iqr_change)<1e-9 and agree==saved.agreement
-          and abs(p-saved.wilcoxon_p) < 1e-9*max(1,abs(p)))
-    print(f"{st} {ix}: per-model changes {np.round(deltas,4).tolist()}")
-    print(f"  median {med:.6f} (saved {saved.median_change:.6f}); IQR {iqr:.6f} (saved {saved.iqr_change:.6f}); "
-          f"ratio {abs(med)/iqr if iqr>0 else 0:.4f}; agreement {agree} (saved {saved.agreement}); "
-          f"Wilcoxon p {p:.6g} (saved {saved.wilcoxon_p:.6g}); direction {sgn(med)}; MATCH {ok}")
+
+def hand_checks(key, df):
+    comp = CONTRASTS[key]['comp']
+    print(f"\n[{key}] HAND CHECKS (recomputed from out/idx annual tables):")
+    for st, ix in HAND_CELLS:
+        deltas, hall, fall = [], [], []
+        for m in MODELS:
+            dfm = load(st, m)
+            h = per(dfm,'H',ix); f = per(dfm,comp,ix)
+            deltas.append(float(np.median(f)-np.median(h))); hall.append(h); fall.append(f)
+        deltas = np.array(deltas); med = float(np.median(deltas))
+        q1,q3 = np.quantile(deltas,[.25,.75]); iqr = float(q3-q1)
+        agree = int((np.sign(deltas)==np.sign(med)).sum()) if med!=0 else int((deltas==0).sum())
+        p = wilcox(np.concatenate(hall), np.concatenate(fall))
+        saved = df[(df.station==st)&(df['index']==ix)].iloc[0]
+        ok = (abs(med-saved.median_change)<1e-9 and abs(iqr-saved.iqr_change)<1e-9 and agree==saved.agreement
+              and abs(p-saved.wilcoxon_p) < 1e-9*max(1,abs(p)))
+        print(f"{st} {ix}: per-model changes {np.round(deltas,4).tolist()}")
+        print(f"  median {med:.6f} (saved {saved.median_change:.6f}); IQR {iqr:.6f} (saved {saved.iqr_change:.6f}); "
+              f"ratio {abs(med)/iqr if iqr>0 else 0:.4f}; agreement {agree} (saved {saved.agreement}); "
+              f"Wilcoxon p {p:.6g} (saved {saved.wilcoxon_p:.6g}); direction {sgn(med)}; MATCH {ok}")
+
+which = sys.argv[1] if len(sys.argv) > 1 else 'all'
+keys = list(CONTRASTS) if which == 'all' else [which]
+for k in keys:
+    dfk = build(k)
+    hand_checks(k, dfk)
