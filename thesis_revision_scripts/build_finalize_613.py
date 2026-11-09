@@ -23,6 +23,15 @@ reports/ADDENDUM_C_LONDON_PERTURBATION_v1.md (Harrow and London branches);
 reports/ROSTER_OF_EDITS_FINAL.md Part F with executor_runs/wu_claude/
 REPORT_WuThesis_ClaudeCodeVM_ADDENDUM_A_2026-11-07.md (the Fergus fork);
 roster Part A items A1-A4 and Part E item E1 (the four Structural items).
+
+Revision 2026-11-09 (literature improvement pass): Section 6.4 gains a
+two-paragraph literature passage (S64_LIT, inserted before the closing
+paragraph) carrying the rank-reliability reframing of the 115-of-132
+tally and the disclosure that the Zhang et al. (2005) bootstrap was in
+force in the executed index calculation, and the two references that
+passage cites (Annan and Hargreaves 2010; Zhang et al. 2005) are added
+to the reference list at their alphabetical positions. Nothing else in
+the build changes; the thesis body and its arrows stand untouched.
 """
 import re
 from docx import Document
@@ -433,8 +442,63 @@ S64 = [
     ),
 ]
 
+# Literature passage added to Section 6.4 by the improvement pass of
+# 2026-11-09, inserted before the closing paragraph above: the
+# rank-reliability reframing of the 115-of-132 tally (Annan and
+# Hargreaves, 2010) and the disclosure that the Zhang et al. (2005)
+# bootstrap resampling was in force in the executed index calculation.
+# Sources: reports/LITERATURE_REVIEW_METHODS_v1.md (families 1 and 7) and
+# reports/NOTEBOOKLM_SYNTHESIS_2026-11-08.md (Answer 2, Answer 3 Move 1
+# and Move 2); citation details verified in
+# reports/lit_review_corpus/corpus_index.csv.
+S64_LIT = [
+    (
+        "One reframing from the audit's literature review belongs in this "
+        "conclusion, because it changes what the thesis's central count means. "
+        "The bounding classification places 115 of the 132 cases within the "
+        "ten-model range and 17 outside it, about 13%. Read as a verdict, the "
+        "count invites the outside cases to be read as failures of the "
+        "ensemble. Rank-histogram reliability theory gives the count a "
+        "different reading: an observation that is statistically "
+        "indistinguishable from the members of a ten-member ensemble falls "
+        "outside the members' range in two of the eleven equally likely "
+        "ranks, so about 18% of cases are expected outside the range by "
+        "chance alone (Annan and Hargreaves, 2010). This thesis's outside "
+        "share, about 13%, is smaller than that expectation, and the 17 cases "
+        "outside the range \u2014 the 7 magnitude offsets and the 10 "
+        "directional reversals of Section 6.3 \u2014 are fewer than a reliable "
+        "ensemble would be expected to leave outside it. The ensemble's "
+        "spread, as this thesis uses it, is therefore adequate and slightly "
+        "over-dispersive rather than deficient, and the count of 115 cases "
+        "within the range is a descriptive benchmark against the range of ten "
+        "models rather than a success rate, just as the cases outside the "
+        "range are not, without more, model failures."
+    ),
+    (
+        "A second point from the same review can be stated as a disclosure, "
+        "and it concerns the percentile-based temperature indices. Those "
+        "indices are computed against thresholds of the 1950\u20131986 "
+        "baseline, and because that baseline is also the Historical window "
+        "of the analysis, the treatment of the in-baseline thresholds "
+        "decides whether the Historical frequencies carry an artificial step "
+        "at the baseline's edge: thresholds applied within the baseline "
+        "without correction imprint exactly such a step, as Zhang et al. "
+        "(2005) established. The executed computation applied the bootstrap "
+        "resampling that paper prescribes. In the climdex engine that the "
+        "Climpact batch run drives, the in-baseline threshold for each "
+        "baseline year is estimated from the remaining baseline years, the "
+        "leave-one-year-out construction that removes the step, and the "
+        "engine offers no option to compute those thresholds without it; "
+        "the audit's independent reimplementation applies the same "
+        "construction and reproduces the archived annual tables to the "
+        "coverage stated in Section 6.1. The percentile contrasts of "
+        "Chapters 3 and 4 therefore carry the correction the method "
+        "requires, and no qualification on that ground attaches to them."
+    ),
+]
+
 # ---------- convention assertions on the chapter text ----------
-ALL_TEXT = ' '.join([INTRO] + S61 + S62_BEFORE + S63 + S64 +
+ALL_TEXT = ' '.join([INTRO] + S61 + S62_BEFORE + S63 + S64 + S64_LIT +
                     [TABLE6_CAPTION, FIGURE8_CAPTION])
 for pat in [r'per cent', r'homogenisation', r'behaviour', r'normalisation',
             r'summarised|summarising', r'labelled|labelling',
@@ -442,7 +506,7 @@ for pat in [r'per cent', r'homogenisation', r'behaviour', r'normalisation',
             r'judgement', r'artefact', r'\bpercent\b']:
     assert not re.search(pat, ALL_TEXT), (pat, re.search(pat, ALL_TEXT).group(0))
 print('chapter text conventions OK; paragraphs:',
-      1 + len(S61) + len(S62_BEFORE) + len(S63) + len(S64))
+      1 + len(S61) + len(S62_BEFORE) + len(S63) + len(S64) + len(S64_LIT))
 
 # ---------- open the document and locate the insertion anchor ----------
 d = Document(SRC)
@@ -535,8 +599,54 @@ for t in S63:
     new_para(t, BODY)
 
 new_heading(S64_TITLE, 'Heading 2')
-for t in S64:
+for t in S64[:3] + S64_LIT + S64[3:]:
     new_para(t, BODY)
+
+# ---------- references for the Section 6.4 literature passage ----------
+# Two entries are added to the existing reference list at their
+# alphabetical positions, in its format (Normal style, Times New Roman
+# 12 pt runs, journal name italic): Annan and Hargreaves (2010), cited by
+# the rank-reliability paragraph, and Zhang et al. (2005), cited by the
+# bootstrap disclosure. Neither is in the list as printed, and a citation
+# without an entry would not resolve, so both are added; no other entry
+# is touched. Details checked against the verified corpus index
+# (reports/lit_review_corpus/corpus_index.csv).
+import copy
+from docx.text.paragraph import Paragraph as _Para
+
+NEW_REFS_613 = [
+    ('Allen, R. G.',
+     'Annan, J. D., & Hargreaves, J. C. (2010). Reliability of the CMIP3 ensemble. ',
+     'Geophysical Research Letters',
+     ', 37, L02703. https://doi.org/10.1029/2009GL041994'),
+    ('Zhou, Y.',
+     'Zhang, X., Hegerl, G., Zwiers, F. W., & Kenyon, J. (2005). Avoiding inhomogeneity in percentile-based indices of temperature extremes. ',
+     'Journal of Climate',
+     ', 18, 1641–1651. https://doi.org/10.1175/JCLI3366.1'),
+]
+
+def add_reference(anchor_prefix, pre, journal, post):
+    assert not any(p.text.startswith(pre[:40]) for p in d.paragraphs), pre[:40]
+    cands = [p for p in d.paragraphs if p.text.startswith(anchor_prefix)]
+    assert len(cands) == 1, (anchor_prefix, len(cands))
+    anch = cands[0]
+    new_el = copy.deepcopy(anch._p)
+    for child in list(new_el):
+        if child.tag in (qn('w:r'), qn('w:hyperlink'),
+                         qn('w:bookmarkStart'), qn('w:bookmarkEnd')):
+            new_el.remove(child)
+    anch._p.addprevious(new_el)
+    np_ = _Para(new_el, d)
+    for text, italic in ((pre, False), (journal, True), (post, False)):
+        r = np_.add_run(text)
+        r.font.name = 'Times New Roman'
+        r.font.size = Pt(12)
+        if italic:
+            r.italic = True
+
+for spec in NEW_REFS_613:
+    add_reference(*spec)
+print('references added:', len(NEW_REFS_613))
 
 d.save(OUT)
 print('saved', OUT)
