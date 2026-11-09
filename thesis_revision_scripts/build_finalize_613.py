@@ -148,14 +148,25 @@ S61 = [
         "reports the experiments that establish this."
     ),
     (
-        "One axis of the classification is expressly untested, and the framework "
-        "records it as open. In the companion bounding analysis of the same data, the "
-        "audit established a pooling defect: the executed code combined the "
-        "observations with the models in the Historical and Present windows where "
-        "the methods text described pools of the ten models alone. Whether the same "
-        "defect runs in this version's own code path was not separately audited, and "
-        "no claim of this thesis is classified Structural, or cleared of being "
-        "Structural, on pooling grounds."
+        "The one axis of the classification that this framework initially recorded "
+        "as open has since been tested, and it closes as a negative. In the "
+        "companion bounding analysis of the same data, the audit established a "
+        "pooling defect: the executed code combined the observations with the "
+        "models in the Historical and Present windows where the methods text "
+        "described pools of the ten models alone. In this version's own code path "
+        "the defect does not run. Every pooled sample in the chain \u2014 the "
+        "ensemble of the period-change computation and the pooled medians of "
+        "Section 3.3 \u2014 is formed from the ten models alone in every window, "
+        "and the audit's reproduction of the results workbook confirms the code "
+        "reading: under pooling of the ten models alone it reproduces all 528 "
+        "pooled period medians, all 396 ensemble change rows in their changes, "
+        "their p-values and their sample sizes, and both pooled projected-change "
+        "columns exactly, while the defect branch, with the observations folded "
+        "into the Historical and Present pools, departs from the archived values "
+        "in 153 of the pooled medians and in the ensemble sample size of every "
+        "one of the 396 rows. No claim of this thesis is classified Structural on "
+        "pooling grounds, and none needs to be; the tier counts of Table 6 stand "
+        "as stated."
     ),
 ]
 
