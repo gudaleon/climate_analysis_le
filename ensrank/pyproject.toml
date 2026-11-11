@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ensrank"
+version = "0.1.0"
+description = "The unified ensemble-change diagnostic: for each station-and-index case, the direction of an ensemble's movement reported together with the position of the observed change within the ensemble's spread, as a rank and a signed margin, with the stability of that position under perturbation."
+readme = "README.md"
+requires-python = ">=3.10"
+# The licence is to be decided by the authors; no licence is declared here and
+# no licence file is included in the project.
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+]
+
+[project.urls]
+Homepage = "https://github.com/gudaleon/climate_analysis_le"
+
+[tool.setuptools.packages.find]
+where = ["src"]
